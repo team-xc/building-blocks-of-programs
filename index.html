@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8">
+    <title>积木编程</title>
+    <script src="js/vue.min.js" type="text/javascript" charset="utf-8"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      li {
+        list-style: none;
+        border-radius: 10px;
+        margin-bottom: 1px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        color: white;
+        white-space: nowrap;
+      }
+
+      li > span,
+      li > input,
+      li > select {
+        margin-right: 10px;
+      }
+
+      .assignment {
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.15) 100%), radial-gradient(at top center, rgba(255, 255, 255, 0.40) 0%, rgba(0, 0, 0, 0.40) 120%) #989898;
+        background-blend-mode: multiply, multiply;
+      }
+
+      .operation {
+        background-image: linear-gradient(to right, #ff8177 0%, #ff867a 0%, #ff8c7f 21%, #f99185 52%, #cf556c 78%, #b12a5b 100%);
+      }
+
+      .console {
+        background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%);
+      }
+
+      .alert {
+        background-image: linear-gradient(to top, #a7a6cb 0%, #8989ba 52%, #8989ba 100%);
+      }
+
+      button {
+        position: relative;
+        padding: 10px 40px;
+        margin: 20px 10px 10px 0;
+        float: left;
+        border-radius: 3px;
+        font-size: 20px;
+        color: #ffffff;
+        text-decoration: none;
+        background-color: #2ecc71;
+        border: none;
+        border-bottom: 5px solid #27ae60;
+        text-shadow: 0 -2px #27ae60;
+        -webkit-transition: all 0.1s;
+        transition: all 0.1s;
+        cursor: pointer;
+      }
+
+      button:hover,
+      button:active {
+        transform: translate(0px, 5px);
+        border-bottom: 1px solid #2ecc71;
+      }
+
+      h1 {
+        margin-bottom: 50px;
+      }
+
+      textarea {
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px black solid;
+        border-radius: 10px;
+        resize: none;
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      input:focus-visible, select:focus-visible {
+        outline: 1px solid black;
+      }
+
+      input, select {
+        border: none;
+        border-radius: 10px;
+        padding: 5px;
+      }
+
+      textarea:focus-visible {
+        outline: 1px solid black;
+      }
+
+      #app {
+        position: absolute;
+        top: 0;
+        width: 100vw;
+        min-height: 100vh;
+        padding: 100px 0;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        align-items: center;
+        flex-direction: column;
+        background-image: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+      }
+
+      .info {
+        display: flex;
+        margin-top: 100px;
+      }
+
+      .info-label {
+        display: flex;
+        flex-direction: column;
+      }
+
+      ul {
+        width: 906px;
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px black solid;
+        border-radius: 10px;
+        resize: none;
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      li {
+        position: relative;
+      }
+
+      li > button {
+        position: absolute;
+        right: 0;
+        margin: 0;
+        padding: 5px 15px;
+        font-size: 14px;
+        width: 100px;
+        height: 100%;
+        border-bottom: none;
+        border-radius: 0 10px 10px 0;
+        text-shadow: none;
+        background: #0003;
+      }
+
+      li > button:hover {
+        transform: none;
+        border-bottom: none;
+        background: #0008;
+      }
+
+      li:not(:first-child) {
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div id="app">
+      <h1>积木编程</h1>
+      <div class="info-label">
+        <label>Program:</label>
+        <ul @dragover="dragover($event)">
+          <li v-for="(item,index) in blockArray" :key="item.index" :class="item.model" :draggable="true"
+              @dragstart="dragstart(item)" @dragenter="dragenter(item,$event)" @dragend="dragend(item,$event)"
+              @dragover="dragover($event)">
+
+            <template v-if="item.model === 'assignment'">
+              <span>设置</span>
+              <input type="text" v-model="item.name" />
+              <span>为</span>
+              <input type="text" v-model="item.value" />
+            </template>
+
+            <template v-if="item.model === 'operation'">
+              <span>运算</span>
+              <input type="text" v-model="item.name" />
+              <select v-model="item.type">
+                <option value="incremental">++</option>
+                <option value="decreasing">--</option>
+                <option value="add">+</option>
+                <option value="subtract">-</option>
+                <option value="multiply">*</option>
+                <option value="divide">/</option>
+                <option value="surplus">%</option>
+              </select>
+              <input v-if="item.type !== 'incremental' && item.type !== 'decreasing'" type="text"
+                     v-model="item.value" />
+            </template>
+
+            <template v-if="item.model === 'console'">
+              <span>控制台输出</span>
+              <input type="text" v-model="item.name" />
+              <span>级别</span>
+              <select v-model="item.type">
+                <option value="log">log</option>
+                <option value="info">info</option>
+                <option value="warn">warn</option>
+                <option value="error">error</option>
+              </select>
+            </template>
+
+            <template v-if="item.model === 'alert'">
+              <span>弹出对话框</span>
+              <input type="text" v-model="item.name" />
+            </template>
+
+            <button @click="blockArray.splice(index,1)">删除</button>
+          </li>
+        </ul>
+      </div>
+      <button @click="run">Run！</button>
+      <div>
+        <button @click="addBlock('assignment')">设置变量</button>
+        <button @click="addBlock('console')">控制台输出</button>
+        <button @click="addBlock('operation')">运算</button>
+        <button @click="addBlock('alert')">弹出对话框</button>
+      </div>
+
+      <div class="info">
+        <div class="info-label">
+          <label for="code_block">Code block:</label>
+          <textarea id="code_block" cols="50" rows="10" :value="JSON.stringify(blockArray, null, '  ')"></textarea>
+        </div>
+
+        <div style="width: 30px;"></div>
+
+        <div class="info-label">
+          <label for="code">Code:</label>
+          <textarea id="code" cols="50" rows="10" :value="getBlockCode()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const app = new Vue({
+        el: '#app',
+        data: {
+          blockArray: [{
+            model: 'assignment',
+            name: 'x',
+            value: '123456'
+          },
+            {
+              model: 'assignment',
+              name: 's',
+              value: '"123456"'
+            },
+            {
+              model: 'console',
+              type: 'log',
+              name: 'x'
+            },
+            {
+              model: 'console',
+              type: 'info',
+              name: 's'
+            },
+            {
+              model: 'operation',
+              type: 'incremental',
+              name: 'x'
+            },
+            {
+              model: 'operation',
+              type: 'multiply',
+              name: 'x',
+              value: 'x'
+            },
+            {
+              model: 'alert',
+              name: 'x'
+            },
+            {
+              model: 'alert',
+              name: 's'
+            }
+          ],
+          oldData: null,
+          newData: null
+        },
+        methods: {
+          getBlockCode(end = ';\n') {
+            let code = ''
+            for (let block of this.blockArray) {
+              switch (block.model) {
+                case 'assignment':
+                  code += 'let ' + block.name + ' = ' + block.value + end
+                  break
+                case 'operation':
+                  switch (block.type) {
+                    case 'incremental':
+                      code += block.name + '++' + end
+                      break
+                    case 'decreasing':
+                      code += block.name + '--' + end
+                      break
+                    case 'add':
+                      code += block.name + ' = ' + block.name + ' + ' + block.value + end
+                      break
+                    case 'subtract':
+                      code += block.name + ' = ' + block.name + ' - ' + block.value + end
+                      break
+                    case 'multiply':
+                      code += block.name + ' = ' + block.name + ' * ' + block.value + end
+                      break
+                    case 'divide':
+                      code += block.name + ' = ' + block.name + ' / ' + block.value + end
+                      break
+                    case 'surplus':
+                      code += block.name + ' = ' + block.name + ' % ' + block.value + end
+                      break
+                  }
+                  break
+                case 'console':
+                  switch (block.type) {
+                    case 'log':
+                      code += 'console.log(' + block.name + ')' + end
+                      break
+                    case 'info':
+                      code += 'console.info(' + block.name + ')' + end
+                      break
+                    case 'warn':
+                      code += 'console.warn(' + block.name + ')' + end
+                      break
+                    case 'error':
+                      code += 'console.error(' + block.name + ')' + end
+                      break
+                  }
+                  break
+                case 'alert':
+                  code += 'alert(' + block.name + ')' + end
+                  break
+              }
+            }
+            return code
+          },
+          run() {
+            eval(this.getBlockCode(';'))
+          },
+          addBlock(type) {
+            let code = {}
+            switch (type) {
+              case 'assignment':
+                code = {
+                  model: 'assignment',
+                  name: '',
+                  value: ''
+                }
+                break
+              case 'console':
+                code = {
+                  model: 'console',
+                  type: 'log',
+                  name: ''
+                }
+                break
+              case 'operation':
+                code = {
+                  model: 'operation',
+                  type: 'incremental',
+                  name: ''
+                }
+                break
+              case 'alert':
+                code = {
+                  model: 'alert',
+                  name: ''
+                }
+                break
+            }
+            this.blockArray.push(code)
+          },
+          dragstart(value) {
+            this.oldData = value
+          },
+          dragenter(value, e) {
+            this.newData = value
+            e.preventDefault()
+          },
+          dragend(value, e) {
+            if (this.oldData !== this.newData) {
+              let oldIndex = this.blockArray.indexOf(this.oldData)
+              let newIndex = this.blockArray.indexOf(this.newData)
+              let newItems = [...this.blockArray]
+              newItems.splice(oldIndex, 1)
+              newItems.splice(newIndex, 0, this.oldData)
+              this.blockArray = [...newItems]
+            }
+          },
+          dragover(e) {
+            e.preventDefault()
+          }
+        }
+      })
+    </script>
+
+  </body>
+
+</html>
